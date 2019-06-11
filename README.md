@@ -23,13 +23,21 @@ Can be useful for:
 11. Execute payload by calling pcwutl.dll,LaunchApplication function -> exec_sysmon_1_rundll32_pcwutl_launchapplication.evtx
 12. Execute payload using "ftp.exe -s:ftp_cmd.txt" binary -> sysmon_1_ftp.evtx
 13. Execute sct stuff using regsvr32\scrobj.dll from pastebin (both ms binaries renamed and normal ones captured) -> exec_sysmon_1_lolbin_renamed_regsvr32_scrobj.evtx & exec_sysmon_lobin_regsvr32_sct.evtx
- 
+12. AMSI bypass via jscript9.dll (not instrumented by AMSI) -> exec_sysmon_1_7_jscript9_defense_evasion.evtx
+13. rundll32 (mshtml,RunHTMLApplication)-> mshta -> schtasks.exe -> exec_persist_rundll32_mshta_scheduledtask_sysmon_1_3_11.evtx
+14. Exec via Drive-by "Adobe Flash CVE-2018-15982" -> exec_driveby_cve-2018-15982_sysmon_1_10.evtx (SrcImg=iexplorer.exe and CallTrace contains "UNKNOWN")	
+15. Exec of cmds/code via XSL (Extensible Markup Language) and WMIC & MSXSL -> exec_wmic_xsl_internet_sysmon_3_1_11.evtx & exec_msxsl_xsl_sysmon_1_7.evtx
+16. Exec & Persist from Volume Shadow Copy -> sysmon_exec_from_vss_persistence.evtx
+17. Lol-bin exec stuff via vshadow.exe (external MS SDK utility) -> sysmon_lolbin_bohops_vshadow_exec.evtx	 
 
 ## Reconnaissance:
 1. PsLoggedOn.exe traces on the destination host
 2. BloodHoundAD\SharpHound (with default scan options) traces on one target host
 3. "Domain Admins" Group enumeration - 4661 (SAM_GROUP, S-1-5-21-domain-512) - DC logs
 4. Process Listing via meterpreter "ps" command - meterpreter_ps_cmd_process_listing_sysmon_10.evtx (more than 10 of sysmon 10 events from same src process and twoard different target images and with same calltrace and granted access)
+5. Invoke-UserHunter traces on the source machine --> Recon_Sysmon_3_Invoke_UserHunter_SourceMachine.evtx
+6. Traces of  shares enumeration using "net view \\target /all" on a target host using sysmon -> enum_shares_target_sysmon_3_18.evtx
+7. Discovery of sensitive IIS config files and saved passwords using IIS appcmd.exe utility -> sysmon_1_iis_pwd_and_config_discovery_appcmd.evtx
 
 ## Persistence:
 1. Application Shimming: sysmon (1, 13, 11) and windowd native event 500 "Microsoft-Windows-Application-Experience\Program-Telemetry"
@@ -37,6 +45,11 @@ Can be useful for:
 3. WMIGhost malwr, sysmon 20, 21 and 1 (ActiveScriptEventConsumer) - wmighost_sysmon_20_21_1.evtx
 4. DCShadow - 4742 Computer Account changed - SPN contains "GC\" and "HOST\" - persistence_security_dcshadow_4742.evtx
 5. Bitsadminexec - sysmon_1_persist_bitsjob_SetNotifyCmdLine.evtx (runtime traces)	& persist_bitsadmin_Microsoft-Windows-Bits-Client-Operational.evtx (creation and runtime traces)
+6. Persistent System Access via replacing onscreenkeyboard PE with cmd.exe -> persistence_accessibility_features_osk_sysmon1.evtx
+7. Persistence via COM hijack of : {BCDE0395-E52F-467C-8E3D-C4579291692E} - CLSID_MMDeviceEnumerator (used i.e. by Firefox) -> persist_firefox_comhijack_sysmon_11_13_7_1.evtx
+8. Persistence via COM hijack of "Outlook Protocol Manager" using TreatAs key for clsid lookup redirection (Turla APT Outlook backdoor) -> persist_turla_outlook_backdoor_comhijack.evtx
+9. Startup++ -> persistence_startup_UserShellStartup_Folder_Changed_sysmon_13.evtx	
+
 
 ## Privilege Escalation:
 1. Via Named Pipe Impersonation - sysmon_13_1_meterpreter_getsystem_NamedPipeImpersonation.evtx (.\\pipe\random present in sysmon 1 cmdline and in service registry) and System_7045_namedpipe_privesc.evtx for default windows system event 7045 (service creation)
@@ -53,6 +66,8 @@ Can be useful for:
 12. UAC Bypass using token manipulation -> security_4624_4673_token_manip.evtx (LT=9 and SeTcbPrivilege use)
 13. UAC Bypass using using cmstp and ini file -> sysmon_1_13_11_cmstp_ini_uacbypass.evtx (dllhost.exe {3E5FC7F9-9A51-4367-9063-A120244FBEC7} hosting CMSTPLUA and spawning desired elevated process)
 14. Elevate from administrator to NT AUTHORITY SYSTEM using handle inheritance (lsass.exe spawn process) -> sysmon_privesc_from_admin_to_system_handle_inheritance.evtx
+15. Rotten Potato exploit to esc from service account to local system via impersonation (bits COM fetch, RPC rogue server, NTLM MITM)-> privesc_rotten_potato_from_webshell_metasploit_sysmon_1_8_3.evtx	
+
 
 ## Credential Access:
 1. Memory dump of lsass.exe using procdump.exe and taskmgr.exe (sysmon 10 & 11)
@@ -68,6 +83,7 @@ Can be useful for:
 11. Invoke-Mimikatz from Github: sysmon_3_10_Invoke-Mimikatz_hosted_Github.evtx
 12. DCSync traces on a Domain Controller - Security 4662 - CA_DCSync_4662.evtx [Properties: {1131f6ad-9c07-11d1-f79f-00c04fc2dcd2}
 or Replicating Directory Changes All” extended right]
+
 ## Lateral Movement:
 1. RemCom (open source psexec) traces on target host eventid 5145
 2. PsExec traces on target host - 5145 - (psexec -r "renamed psexec service name")
@@ -85,6 +101,12 @@ or Replicating Directory Changes All” extended right]
 14. PSEXEC - Sysmon - LM_sysmon_psexec_smb_meterpreter.evtx
 15. LM via DCOM ShellBrowserWindow or ShellWindows COM classes - explorer.exe with internal IP addresses network connections over RPC high port numbers -> LM_sysmon_3_DCOM_ShellBrowserWindow_ShellWindows.evtx
 16. LM via DCOM MSHTA (known as LethalHTA) -> LM_DCOM_MSHTA_LethalHTA_Sysmon_3_1.evtx
+17. LM via writing to the startup folder exposed via tsclient (RDP local resources default share, sysmon 11) -> LM_tsclient_startup_folder.evtx
+18. Remote execution via WinRM from target host (sysmon process create winrshost.exe) -> LM_winrm_exec_sysmon_1_winrshost.evtx
+19. Remote PowerShell Session (sysmon process create wsmprovhost.exe) -> LM_PowershellRemoting_sysmon_1_wsmprovhost.evtx
+20. LM via InternetExplorer.Application COM object -> LM_dcom_InternetExplorer.Application_sysmon_1.evtx
+21. LM via WebShell (w3wp.exe -> cmd.exe -> whoami.exe) -> LM_typical_IIS_webshell_sysmon_1_10_traces.evtx
+
 
 ## Defense Evasion:
 1. RDP Tunneling via SSH - eventid 4624 - Logon Type 10 and Source IP eq to loopback IP address
@@ -97,3 +119,12 @@ or Replicating Directory Changes All” extended right]
 8. Process Suspended - ProcessAccess with GrantedAccess eq to 0x800 - process_suspend_sysmon_10_ga_800.evtx
 9. Meterpreter Migrate cmd from untrusted process to a trusted one (explorer.exe) - meterpreter_migrate_to_explorer_sysmon_8.evtx
 10. Timestomp MACE attributes - sysmon 2 (filecreatetime) and 11 (file creation) - sysmon_2_11_evasion_timestomp_MACE.evtx
+11. Office VBA Sensitive Security Setting Changed ->  de_sysmon_13_VBA_Security_AccessVBOM.evtx
+12. PowerShell CLM local machine environment variable "__PSLockdownPolicy" removed-> DE_Powershell_CLM_Disabled_Sysmon_12.evtx
+13. User Account Control Disabled - Sysmon EID 12/12 -> DE_UAC_Disabled_Sysmon_12_13.evtx
+14. Unmanaged PowerShell via PSInject -> de_unmanagedpowershell_psinject_sysmon_7_8_10.evtx
+15. PowerShell scriptblock logging deleted or disbaled -> de_PsScriptBlockLogging_disabled_sysmon12_13.evtx
+16. RDP Port forwarding via netsh  portproxy cmd -> de_portforward_netsh_rdp_sysmon_13_1.evtx
+17. PowerShell Execution Policy Changed - de_powershell_execpolicy_changed_sysmon_13.evtx
+18. APT10 DLL side loading "jli.dll via jjs.exe", ProcessHollowing masqurading as svchost.exe -> apt10_jjs_sideloading_prochollowing_persist_as_service_sysmon_1_7_8_13.evtx	
+ 
